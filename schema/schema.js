@@ -1,17 +1,13 @@
-const { GraphQLObjectType, GraphQLSchema, GraphQLString, GraphQLID, GraphQLInt, GraphQLList } = require('graphql')
+const { GraphQLObjectType,
+    GraphQLSchema,
+    GraphQLString,
+    GraphQLID,
+    GraphQLInt,
+    GraphQLList
+} = require('graphql')
 
-// const books = [
-//     { name: 'Name of wind', genre: 'Fantasy', id: '1', authorId: '1' },
-//     { name: 'The final empire', genre: 'Fantasy', id: '2', authorId: '2' },
-//     { name: 'The final days', genre: 'Fantasy', id: '4', authorId: '3' },
-//     { name: 'The long earth', genre: 'Action', id: '3', authorId: '1' },
-// ]
-
-// const authors = [
-//     { name: 'Patrick', age: 88, id: '1' },
-//     { name: 'Brandon', age: 77, id: '2' },
-//     { name: 'Terry', age: 66, id: '3' },
-// ]
+const Book = require('../models/book')
+const Author = require('../models/author')
 
 const BookType = new GraphQLObjectType({
     name: 'Book',
@@ -22,7 +18,7 @@ const BookType = new GraphQLObjectType({
         author: {
             type: AuthorType,
             resolve(parent, _) {
-                return authors.find(author => author.id === parent.authorId)
+                return Author.findById(parent.authorId)
             }
         }
     })
@@ -37,40 +33,75 @@ const AuthorType = new GraphQLObjectType({
         books: {
             type: new GraphQLList(BookType),
             resolve(parent, args) {
-                return books.filter(b => b.authorId === parent.id)
+                return Book.find({ authorId: parent.id })
             }
         }
     })
 })
 
-module.exports = new GraphQLSchema({
-    query: new GraphQLObjectType({
-        name: 'query',
-        description: 'The entry point',
-        fields: {
-            book: {
-                type: BookType,
-                args: { id: { type: GraphQLID } },
-                resolve(_, args) {
-                    return books.find(b => b.id === args.id)
-                }
+const query = new GraphQLObjectType({
+    name: 'query',
+    description: 'The entry point',
+    fields: {
+        book: {
+            type: BookType,
+            args: { id: { type: GraphQLID } },
+            resolve(_, args) {
+                return Book.findById(args.id)
+            }
+        },
+        author: {
+            type: AuthorType,
+            args: { id: { type: GraphQLID } },
+            resolve(_, args) {
+                return Author.findById(args.id)
+            }
+        },
+        books: {
+            type: new GraphQLList(BookType),
+            resolve: () => Book.find()
+        },
+        authors: {
+            type: new GraphQLList(AuthorType),
+            resolve: () => Author.find()
+        },
+    }
+})
+
+const mutation = new GraphQLObjectType({
+    name: 'Mutation',
+    fields: {
+        addAuthor: {
+            type: AuthorType,
+            args: {
+                name: { type: GraphQLString },
+                age: { type: GraphQLInt }
             },
-            author: {
-                type: AuthorType,
-                args: { id: { type: GraphQLID } },
-                resolve(_, args) {
-                    return authors.find(author => author.id === args.id)
-                }
+            resolve(_, args) {
+                let author = new Author({
+                    name: args.name,
+                    age: args.age
+                })
+
+                return author.save()
+            }
+        },
+        addBook: {
+            type: BookType,
+            args: {
+                name: { type: GraphQLString },
+                genre: { type: GraphQLString },
+                authorId: { type: GraphQLID }
             },
-            books: {
-                type: new GraphQLList(BookType),
-                resolve: () => books
-            },
-            authors: {
-                type: new GraphQLList(AuthorType),
-                resolve: () => authors
-            },
+            resolve(_, args) {
+                return new Book(args).save()
+            }
         }
-    })
+    }
+})
+
+module.exports = new GraphQLSchema({
+    query,
+    mutation
 })
 
