@@ -3,6 +3,10 @@ const { graphqlHTTP } = require('express-graphql')
 const schema = require('./schema/schema')
 const mongoose = require('mongoose')
 
+const cors = require('cors')
+
+app.use(cors())
+
 mongoose.connect(
     'mongodb+srv://graphqlbooks:graphqlbooks@grpahql-books.folt5.mongodb.net/grpahql-books?retryWrites=true&w=majority'
 )
